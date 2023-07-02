@@ -3,7 +3,8 @@
 #include "user/user.h"
 #include "kernel/fs.h"
 
-char *fmtname(char *path)
+char *
+fmtname(char *path)
 {
     static char buf[DIRSIZ + 1];
     char *p;
@@ -17,7 +18,8 @@ char *fmtname(char *path)
     if (strlen(p) >= DIRSIZ)
         return p;
     memmove(buf, p, strlen(p));
-    memset(buf + strlen(p), ' ', DIRSIZ - strlen(p));
+    buf[strlen(p)] = '\0';
+
     return buf;
 }
 
@@ -44,12 +46,14 @@ void find(char *path, char *file_name)
     switch (st.type)
     {
     case T_FILE:
-        printf("./%s\n", fmtname(path));
+        if (!strcmp(fmtname(path), file_name))
+            printf("%s\n", path);
         break;
+
     case T_DIR:
         if (strlen(path) + 1 + DIRSIZ + 1 > sizeof buf)
         {
-            printf("ls: path too long\n");
+            printf("find: path too long\n");
             break;
         }
         strcpy(buf, path);
@@ -57,17 +61,11 @@ void find(char *path, char *file_name)
         *p++ = '/';
         while (read(fd, &de, sizeof(de)) == sizeof(de))
         {
-            if (de.inum == 0)
+            if (de.inum == 0 || de.inum == 1 || strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
                 continue;
-            memmove(p, de.name, DIRSIZ);
-            p[DIRSIZ] = 0;
-            if (stat(buf, &st) < 0)
-            {
-                printf("ls: cannot stat %s\n", buf);
-                continue;
-            }
-            if(strcmp(de.name,file_name)==0)
-            printf("./%s\n", fmtname(buf));
+            memmove(p, de.name, strlen(de.name));
+            p[strlen(de.name)] = '\0';
+            find(buf, file_name);
         }
         break;
     }
@@ -78,12 +76,9 @@ int main(int argc, char *argv[])
 {
     if (argc != 3)
     {
-        fprintf(1, "Please input the right format(find path file_name)\n");
+        printf("Please input the right format(find path file_name)\n");
         exit(0);
     }
-    else
-    {
-        find(argv[1], argv[2]);
-    }
-    return 0;
+    find(argv[1], argv[2]);
+    exit(0);
 }
