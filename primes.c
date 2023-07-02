@@ -16,7 +16,7 @@ int main()
 {
     int n, pid;
     int fds[2];
-    char buf[100];
+    char buf[20];
 
     pipe(fds);
 
@@ -37,6 +37,7 @@ int main()
     {
         n = read(fds[0], buf, sizeof(buf));
         write(1, buf, n);
+        sleep(10);
     }
     exit(0);
 }
