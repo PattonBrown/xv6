@@ -4,9 +4,9 @@
 
 int primesFigure(int n)
 {
-    for (int i = 2; i <= n / 2; i++)
+    for (int i = 2; i*i <= n ; i++)
     {
-        if (n % 2 == 0)
+        if (n % i == 0)
             return 0;
     }
     return 1;
@@ -28,7 +28,8 @@ int main()
         {
             if (primesFigure(i) == 1)
             {
-                write(fds[1], i, sizeof(i));
+                fprintf(1,"prime %d\n",i);
+                write(fds[1], buf, sizeof(buf));
             }
         }
     }
