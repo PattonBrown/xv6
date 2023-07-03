@@ -1,43 +1,67 @@
 #include "kernel/types.h"
-#include "user/user.h"
 #include "kernel/stat.h"
+#include "user/user.h"
+#include "kernel/fs.h"
 
-int primesFigure(int n)
-{
-    for (int i = 2; i*i <= n ; i++)
-    {
-        if (n % i == 0)
-            return 0;
-    }
-    return 1;
-}
+#define MAX_NUM 35
+#define READ_END 0
+#define WRITE_END 1
+
+void sieve(int);
+void prime_numbers();
 
 int main()
 {
-    int n, pid;
-    int fds[2];
-    char buf[20];
+    int pipe_fd[2];
+    pipe(pipe_fd);
 
-    pipe(fds);
+    if (fork() == 0) {
+        close(pipe_fd[WRITE_END]);
+        sieve(pipe_fd[READ_END]);
+    } else {
+        close(pipe_fd[READ_END]);
 
-    pid = fork();
-    if (pid == 0)
-    {
-        // fprintf(1,"%d\n",getpid());
-        for (int i = 2; i <= 35; i++)
-        {
-            if (primesFigure(i) == 1)
-            {
-                fprintf(1,"prime %d\n",i);
-                write(fds[1], buf, sizeof(buf));
+        for (int i = 2; i <= MAX_NUM; i++) {
+            write(pipe_fd[WRITE_END], &i, sizeof(int));
+        }
+
+        close(pipe_fd[WRITE_END]);
+
+        wait(0);
+    }
+
+    exit(0);
+}
+
+void sieve(int read_fd)
+{
+    int pipe_fd[2];
+    pipe(pipe_fd);
+
+    int prime;
+    if (read(read_fd, &prime, sizeof(int)) == 0) {
+        exit(0);
+    }
+
+    printf("prime %d\n", prime);
+
+    if (fork() == 0) {
+        close(pipe_fd[WRITE_END]);
+        sieve(pipe_fd[READ_END]);
+    } else {
+        close(pipe_fd[READ_END]);
+
+        int num;
+        while (read(read_fd, &num, sizeof(int))) {
+            if (num % prime != 0) {
+                write(pipe_fd[WRITE_END], &num, sizeof(int));
             }
         }
+
+        close(read_fd);
+        close(pipe_fd[WRITE_END]);
+
+        wait(0);
+        exit(0);
     }
-    else
-    {
-        n = read(fds[0], buf, sizeof(buf));
-        write(1, buf, n);
-        sleep(10);
-    }
-    exit(0);
 }
